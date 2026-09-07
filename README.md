@@ -1,4 +1,4 @@
-# claude-kit
+# skill-kit
 
 Claude Code skills that are worth having in **every** project, kept in version control instead of
 loose in `~/.claude/`.
@@ -10,8 +10,8 @@ build.
 ## Install
 
 ```bash
-git clone <this repo> ~/Documents/claude-kit
-cd ~/Documents/claude-kit && ./install.sh
+git clone git@github.com:sws55/-skill-kit.git ~/Documents/skill-kit
+cd ~/Documents/skill-kit && ./install.sh
 ```
 
 `install.sh` symlinks each `skills/<name>/` into `~/.claude/skills/` and `CLAUDE.md` into

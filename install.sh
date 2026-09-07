@@ -38,6 +38,11 @@ link_one() {
     if [ "$current" = "$src" ]; then say "ok       $name (already linked)"; return; fi
     if [ "$current" != "${current#$KIT}" ]; then
       run rm "$dst"; say "relinked $name (was $current)"
+    elif [ ! -e "$dst" ]; then
+      # Dangling: whatever it pointed at is gone, so there is nothing to lose. This is
+      # the normal state after the kit directory is renamed or moved, and refusing to
+      # touch it would leave the skill silently uninstalled.
+      run rm "$dst"; say "relinked $name (was dangling: $current)"
     else
       say "SKIP     $name — symlink to something else: $current"; return
     fi
