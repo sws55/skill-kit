@@ -189,10 +189,13 @@ represents.
    afterwards. On a free personal team, expect a 7-day signing clock on the local build and a cap of
    10 new App IDs per 7 days — that cap presents as a signing failure and is not a keychain problem.
 
-9. **Write it down.** Add the equivalent of `.claude/app-profile.md` and a team guide, and copy the
-   sibling skills (`ship-app`/`ship-dudu`, `ota-doctor`, `native-rebuild`) across. The traps in the
-   audit list are the entire reason those files exist; a config without the note is a config that
-   gets re-broken.
+9. **Write it down.** `.claude/app-profile.md` is written in step 0 and is the only file the sibling
+   skills need — they are installed per-machine, so `/ship-app`, `/ota-doctor` and `/native-rebuild`
+   work in this project the moment the profile exists. Nothing is copied into the repo.
+
+   What is still worth writing is the project's own note: a line in its `CLAUDE.md` saying which
+   route ships what, and, if anyone else builds it, a setup guide. The traps in the audit list are
+   the entire reason those files exist; a config without the note is a config that gets re-broken.
 
 ---
 
