@@ -10,7 +10,7 @@ build.
 ## Install
 
 ```bash
-git clone git@github.com:sws55/-skill-kit.git ~/Documents/skill-kit
+git clone git@github.com:sws55/skill-kit.git ~/Documents/skill-kit
 cd ~/Documents/skill-kit && ./install.sh
 ```
 
