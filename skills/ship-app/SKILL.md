@@ -23,9 +23,13 @@ or upgraded package with a native module, or the SDK. Everything under `src/`, f
 is JS. The profile's *native-input files* row is authoritative for this project.
 
 You do not have to judge this by eye, and you should not. Compare the fingerprint against the last
-build:
+build — **after `npm ci`**, because the fingerprint hashes the `node_modules` that is installed, not
+the lockfile, and EAS recomputes it from a clean install and fails the build on any disagreement
+(`CONFIGURE_EXPO_UPDATES`, "Runtime version mismatch"). A `git pull` that touched
+`package-lock.json` leaves a stale install describing a native layer no build can reproduce:
 
 ```bash
+npm ci
 npx expo-updates fingerprint:generate --platform ios | python3 -c "import json,sys; print(json.load(sys.stdin)['hash'])"
 npx eas-cli@latest build:list --limit 1 --platform ios --json --non-interactive | python3 -c "import json,sys; b=json.load(sys.stdin)[0]; print(b['buildProfile'], b['updateChannel']['name'], b['fingerprint']['hash'])"
 ```
@@ -99,6 +103,13 @@ do not duplicate its recipe here.
   it was added each need the answer by hand, once.
 - **Fingerprint sources a plugin reads but does not import** need a `fingerprint.config.js` entry, or
   repainting an asset changes the binary while the runtime version stays still.
+- **A stale `node_modules` fails the build at `CONFIGURE_EXPO_UPDATES`** with "Runtime version
+  mismatch" and a JSON diff naming the package. The fix is `npm ci`, not a config change — and the
+  dev client built on the stale install is then behind too (Reanimated/worklets check JS against
+  native at startup), so it needs `/native-rebuild`.
+- **EAS build logs are brotli-encoded.** `build:view <id> --json` lists a `logFiles` URL served as
+  `Content-Encoding: br`; system `curl` saves raw bytes. `brotli -d`, then filter the JSON lines on
+  `phase` to find the one that failed.
 
 ## Guardrails
 

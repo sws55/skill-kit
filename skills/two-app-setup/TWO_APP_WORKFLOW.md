@@ -258,6 +258,24 @@ build roughly quarterly whether or not anything native changed.*
 in the background; the launch after that runs it. *Rule: cold-launch twice before believing something
 is broken — it is the first thing `/ota-doctor` checks, and often the whole answer.*
 
+**18 · The fingerprint hashes what is installed, not what the lockfile says.** Build 7 (2026-09-14)
+failed EAS's own `CONFIGURE_EXPO_UPDATES` check — "Runtime version mismatch" between the hash the
+CLI sent from the Mac and the one EAS computed after a clean `npm ci`. The whole difference was
+`node_modules/react-native-worklets`: 0.8.3 on the Mac since June, 0.5.1 in `package-lock.json`
+since a teammate pinned it on 2026-09-05. Nobody had reinstalled after pulling, so every "local"
+fingerprint for ten days described a native layer no build could have. `npm ci` made the hashes
+identical and build 8 went through. The quieter half of the same fault: an OTA published from that
+Mac would have carried a runtime version no build has, and reported success. *Rule: `npm ci` before
+comparing fingerprints, publishing, or building — a lockfile change on `git pull` is a native change
+until the install catches up. The dev client built on the stale install is out of step too:
+Reanimated and worklets check JS against native at startup, so it needs rebuilding.*
+
+**19 · EAS build logs are brotli-encoded.** `build:view --json` lists a `logFiles` URL served with
+`Content-Encoding: br`; the system `curl` writes the raw bytes and `file` calls them `data`. Pipe
+through `brotli -d` (Homebrew). Each line is JSON with `phase` and `msg` — filter on `phase` to find
+the one that failed. *Rule: the error message names the phase; the log is the only thing that names
+the cause.*
+
 ---
 
 ## 5. What this costs, honestly

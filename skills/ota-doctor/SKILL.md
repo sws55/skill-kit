@@ -56,6 +56,11 @@ git log --oneline -15 -- app.config.js eas.json plugins/ fingerprint.config.js p
   # publish, then restore eas.json
   ```
   Then say plainly that the next build closes it properly.
+- **`package-lock.json` changed since the last install** ⇒ the local hash describes a
+  `node_modules` no build has. The fingerprint hashes what is installed, not the lockfile;
+  `npm ci`, regenerate, and compare again before reading anything else into the diff. (Seen
+  2026-09-14: a teammate's lockfile pin of `react-native-worklets` 0.8.3 → 0.5.1, never installed
+  locally, moved the hash for ten days and failed an EAS build at `CONFIGURE_EXPO_UPDATES`.)
 - **Nothing obvious moved** ⇒ compare the source lists rather than guessing:
   ```bash
   npx expo-updates fingerprint:generate --platform ios | python3 -c "import json,sys; [print(s.get('type'), s.get('filePath') or s.get('id')) for s in json.load(sys.stdin)['sources']]" | sort
