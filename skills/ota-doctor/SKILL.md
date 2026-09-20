@@ -31,9 +31,20 @@ and everything below is wasted work.
 
 ## 1. Does the fingerprint match the installed build?
 
+**Installed means SUBMITTED.** `build:list` names what was compiled; only `submit:list` names what
+a phone can have. A build that matches `main` but never went to the store proves nothing
+(2026-09-19: build 9 matched, the phones ran build 8). If the profile names a preflight script,
+it does this whole step:
+
+```bash
+<the profile's OTA preflight, e.g. npm run ota:preflight>
+```
+
+By hand:
+
 ```bash
 npx expo-updates fingerprint:generate --platform ios | python3 -c "import json,sys; print(json.load(sys.stdin)['hash'])"
-npx eas-cli@latest build:list --limit 5 --platform ios --json --non-interactive | python3 -c "import json,sys; [print(b['id'][:8], b['buildProfile'], b['updateChannel']['name'], b['fingerprint']['hash'][:8], b['status']) for b in json.load(sys.stdin)]"
+npx eas-cli@latest submit:list --limit 3 --platform ios --json --non-interactive | python3 -c "import json,sys; [print(s['status'], 'build', s['submittedBuild']['appBuildVersion'], s['submittedBuild']['updateChannel']['name'], s['submittedBuild']['fingerprint']['hash'][:8]) for s in json.load(sys.stdin)]"
 ```
 
 `runtimeVersion` is `fingerprint`, so this is not advice — it is what the client enforces. Different
@@ -47,6 +58,11 @@ git log --oneline -15 -- app.config.js eas.json plugins/ fingerprint.config.js p
 
 - A **real native change** (a new module, a permission, a plugin, icon or splash artwork) ⇒ the build
   has to come first. There is no way round it and that is the policy working.
+- **A file that cannot change the binary was edited** — `eas.json` (`submit` section included),
+  `.gitignore`, `package.json` `scripts` — ⇒ the runtime version moved for nothing. Prevent the
+  next one by excluding it in `fingerprint.config.js` (`sourceSkips`/`ignorePaths`) immediately
+  before the next build. To rescue the shipped build now, the `eas.json` recipe below applies with
+  that file in its place.
 - **`eas.json` edited after the build** ⇒ the runtime version moved for nothing. `eas.json` is hashed
   whole, `submit` section included, so even a submit-only key orphans every existing build. To rescue
   an already-submitted build:

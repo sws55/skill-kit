@@ -28,10 +28,21 @@ the lockfile, and EAS recomputes it from a clean install and fails the build on 
 (`CONFIGURE_EXPO_UPDATES`, "Runtime version mismatch"). A `git pull` that touched
 `package-lock.json` leaves a stale install describing a native layer no build can reproduce:
 
+**If the profile names a preflight script, run that and nothing else here** — it does every check
+below and refuses on the first failure:
+
+```bash
+<the profile's OTA preflight, e.g. npm run ota:preflight>
+```
+
+Otherwise, by hand — and compare against the newest **SUBMITTED** build, never the newest build.
+`build:list` says what was compiled; `submit:list` says what a phone can have. (2026-09-19: build 9
+matched, sat on EAS unsubmitted for four days, and the phones on build 8 declined the update.)
+
 ```bash
 npm ci
 npx expo-updates fingerprint:generate --platform ios | python3 -c "import json,sys; print(json.load(sys.stdin)['hash'])"
-npx eas-cli@latest build:list --limit 1 --platform ios --json --non-interactive | python3 -c "import json,sys; b=json.load(sys.stdin)[0]; print(b['buildProfile'], b['updateChannel']['name'], b['fingerprint']['hash'])"
+npx eas-cli@latest submit:list --limit 1 --platform ios --json --non-interactive | python3 -c "import json,sys; b=json.load(sys.stdin)[0]['submittedBuild']; print('build', b['appBuildVersion'], b['updateChannel']['name'], b['fingerprint']['hash'])"
 ```
 
 Same hash, an OTA will land. Different hash, it will not — the build has to come first. With
@@ -39,13 +50,21 @@ Same hash, an OTA will land. Different hash, it will not — the build has to co
 mismatched update is never offered, and the app silently keeps running its embedded bundle.
 
 If the hashes differ and no native change was intended, hand it to `/ota-doctor` rather than
-guessing — an `eas.json` edit made *after* the last build is the usual cause and has its own remedy.
+guessing — a file that cannot change the binary being hashed (`eas.json` 08-31, `.gitignore` 09-15,
+`package.json` scripts) is the usual cause and has its own remedy.
 
 ## Path A — JS-only, over the air
 
 ```bash
 <the profile's gate commands, e.g. npm run typecheck && npm test -- --runInBand>
 git status
+<the profile's OTA publish command, e.g. npm run ota -- "<what changed">
+```
+
+Where the profile names a publish wrapper, use it: it re-runs the preflight and takes the channel
+from the submitted build itself, so none of the flags below can be got wrong. Only without one:
+
+```bash
 APP_VARIANT= npx eas-cli@latest update --branch <channel> --environment production --message "<what changed>"
 ```
 
@@ -92,7 +111,13 @@ do not duplicate its recipe here.
 
 ## Traps that each cost a build cycle
 
-- **`eas.json` is a fingerprint source, hashed whole.** Editing any part of it — including `submit`,
+- **Files that cannot change the binary are still hashed** — `eas.json` whole (including `submit`),
+  `.gitignore`, `package.json`'s `scripts`. Each has orphaned a shipped build here. Exclude them in
+  `fingerprint.config.js` (`sourceSkips: GitIgnore | PackageJsonScriptsAll`, `ignorePaths:
+  ['eas.json']`) and PROVE it: edit each, regenerate, same hash; append a byte to a real native
+  input, different hash. A native effect routed through `app.config.js` still counts, because the
+  evaluated config is its own source.
+- **`eas.json` is a fingerprint source, hashed whole** (until excluded as above). Editing any part of it — including `submit`,
   which cannot affect the binary — changes the runtime version and orphans every existing build from
   OTA updates. Change it immediately *before* a build, never after. To reach an already-shipped build
   afterwards, publish once from a tree with the old file restored
